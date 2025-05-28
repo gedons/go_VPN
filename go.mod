@@ -2,9 +2,12 @@ module github.com/gedons/go_VPN
 
 go 1.24.2
 
-require github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
+require (
+	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2
+	gopkg.in/yaml.v2 v2.4.0
+)
 
 require (
-	golang.org/x/sys v0.33.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.zx2c4.com/wireguard/windows v0.5.3
 )

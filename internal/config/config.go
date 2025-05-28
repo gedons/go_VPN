@@ -5,22 +5,21 @@ import (
 	"os"
 )
 
-type ClientConfig struct {
-	ServerIp   string `yaml:"server_ip"`
-	ServerPort int    `yaml:"server_port"`
-	PSK		string `yaml:"psk"`
-	TUNName    string `yaml:"tun_name"`
+type CommonConfig struct {
+	ServerIP      string `yaml:"server_ip"`
+	ServerPort    int    `yaml:"server_port"`
+	PSK           string `yaml:"psk"`
+	AdapterName   string `yaml:"adapter_name"`
+	AdapterIPCIDR string `yaml:"adapter_ip_cidr"` // e.g. "10.0.0.2/24"
 }
 
-func LoadClientConfig(path string) (*ClientConfig, error) {
+func LoadConfig(path string) (*CommonConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	
-	var conf ClientConfig
-	err = yaml.Unmarshal(data, &conf)
-	if err != nil {
+	var conf CommonConfig
+	if err := yaml.Unmarshal(data, &conf); err != nil {
 		return nil, err
 	}
 	return &conf, nil
