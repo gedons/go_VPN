@@ -10,97 +10,74 @@ import (
 	"golang.zx2c4.com/wireguard/windows/tunnel/winipcfg"
 )
 
-// SessionRingBuffer is the size (in bytes) of the Wintun ring buffer.
-const SessionRingBuffer = 1 << 23 // 8 MiB
+const (
+	SessionRingBuffer = 1 << 23 // 8 MiB
+	IPStabilizeDelay  = 300 * time.Millisecond
+)
 
-// IPStabilizeDelay gives Windows time to apply the IP address.
-const IPStabilizeDelay = 300 * time.Millisecond
-
-// WintunManager handles the adapter and packet session.
+// WintunManager wraps the adapter and session.
 type WintunManager struct {
 	adapter *wintun.Adapter
 	session *wintun.Session
 }
 
-// SetupWintun creates (or opens) a Wintun adapter named adapterName,
-// assigns it the CIDR address (e.g. "10.0.0.2/24"), and starts a packet session.
+// SetupWintun creates/opens the adapter, assigns IP, and starts session.
 func SetupWintun(ctx context.Context, adapterName, cidr string) (*WintunManager, error) {
-	// 1) Create or open the adapter
+	// 1) Create or open
 	a, err := wintun.CreateAdapter(adapterName, "GoVPN", nil)
 	if err != nil {
-		log.Printf("CreateAdapter failed, trying OpenAdapter: %v", err)
+		log.Printf("CreateAdapter failed: %v; trying OpenAdapter", err)
 		a, err = wintun.OpenAdapter(adapterName)
 		if err != nil {
 			return nil, err
 		}
 	}
-	log.Printf("Wintun adapter with LUID %d ready", a.LUID())
+	log.Printf("Adapter LUID %d ready", a.LUID())
 
-	// 2) Assign IP using winipcfg (avoids UInt32 conversion issues)
-	prefix, err := netip.ParsePrefix(cidr)
+	// 2) Assign IP via winipcfg
+	pfx, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		a.Close()
 		return nil, err
 	}
-
-	luid := a.LUID()
-	netLUID := winipcfg.LUID(luid)
-	if err := netLUID.SetIPAddresses([]netip.Prefix{prefix}); err != nil {
+	luid := winipcfg.LUID(a.LUID())
+	if err := luid.SetIPAddresses([]netip.Prefix{pfx}); err != nil {
 		a.Close()
 		return nil, err
 	}
-	log.Printf("Assigned IP %s to adapter LUID %d", cidr, a.LUID())
-
-
-
-	// Give Windows a moment to apply the IP
+	log.Printf("Assigned IP %s", cidr)
 	time.Sleep(IPStabilizeDelay)
 
-	// 3) Start a packet session
+	// 3) Start session
 	sess, err := a.StartSession(SessionRingBuffer)
 	if err != nil {
 		a.Close()
 		return nil, err
 	}
-	log.Printf("Wintun session started (ring=%d bytes)", SessionRingBuffer)
+	log.Printf("Session started (ring=%d)", SessionRingBuffer)
 
-	return &WintunManager{
-		adapter: a,
-		session: &sess,
-	}, nil
+	return &WintunManager{adapter: a, session: &sess}, nil
 }
 
-// ReadPacket reads one raw IP packet from the tunnel.
+// ReadPacket returns one packet or an error.
 func (m *WintunManager) ReadPacket() ([]byte, error) {
-	packet, err := (*m.session).ReceivePacket()
+	pkt, err := (*m.session).ReceivePacket()
 	if err != nil {
-		// Special case: "No more data" is not a real error
-		if err.Error() == "No more data is available." {
-			time.Sleep(10 * time.Millisecond) // avoid tight loop
-			return nil, nil
-		}
 		return nil, err
 	}
-	if packet == nil {
-		time.Sleep(10 * time.Millisecond)
-		return nil, nil
-	}
-
-	data := make([]byte, len(packet))
-	copy(data, packet)
-	(*m.session).ReleaseReceivePacket(packet)	
-
+	data := make([]byte, len(pkt))
+	copy(data, pkt)
+	(*m.session).ReleaseReceivePacket(pkt)
 	return data, nil
 }
 
-
-// WritePacket writes one raw IP packet into the tunnel.
+// WritePacket sends one packet.
 func (m *WintunManager) WritePacket(data []byte) error {
 	(*m.session).SendPacket(data)
 	return nil
 }
 
-// Close ends the session and closes the adapter.
+// Close tears down session and adapter.
 func (m *WintunManager) Close() {
 	if m.session != nil {
 		(*m.session).End()
