@@ -1,4 +1,4 @@
-module myproject
+module GUI
 
 go 1.23
 

@@ -2,10 +2,12 @@ package main
 
 import (
 	"embed"
+	"GOVPN/pkg/vpn"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	
 )
 
 //go:embed all:frontend/dist
@@ -17,7 +19,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "myproject",
+		Title:  "GUI",
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{
