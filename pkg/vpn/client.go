@@ -3,7 +3,9 @@ package vpn
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
+	"runtime"
 	"sync"
 
 	"github.com/gedons/go_VPN/internal/crypto"
@@ -29,6 +31,13 @@ func NewClient(cfg Config) *Client {
 
 // Start brings up the tunnel, crypto, and forwards packets.
 func (c *Client) Start() error {
+	
+	if runtime.GOOS == "windows" {
+	if err := SetupWindowsClient(c.cfg.AdapterName, "10.0.0.1"); err != nil {
+		log.Printf("Client setup warning: %v", err)
+		}
+	}
+
 	// Crypto
 	ci, err := crypto.NewCipher([]byte(c.cfg.PSK))
 	if err != nil {

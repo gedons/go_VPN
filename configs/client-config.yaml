@@ -1,5 +1,5 @@
-server_ip: "203.0.113.10"
-server_port: 51820
+mode: client
+server_address: 203.0.113.10:51820   
 psk: "thisis32byteslongpassphrase12345"
-adapter_name: "GoVPN Client"
-adapter_ip_cidr: "10.0.0.2/24"
+adapter_name: GoVPN-Client
+adapter_ip_cidr: 10.0.0.2/24

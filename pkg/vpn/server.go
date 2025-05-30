@@ -3,7 +3,9 @@ package vpn
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
+	"runtime"
 	"sync"
 
 	"github.com/gedons/go_VPN/internal/crypto"
@@ -37,6 +39,18 @@ func NewServer(cfg Config) *Server {
 
 // Start brings up the server tunnel and forwards packets.
 func (s *Server) Start() error {
+	
+if runtime.GOOS == "windows" {
+	port, err := s.cfg.ExtractPort()
+	if err != nil {
+		log.Printf("Failed to extract port from server address: %v", err)
+	} else {
+		if err := SetupWindowsServer(s.cfg.AdapterName, port); err != nil {
+			log.Printf("Server setup warning: %v", err)
+		}
+	}
+}
+
 	// Crypto
 	ci, err := crypto.NewCipher([]byte(s.cfg.PSK))
 	if err != nil {

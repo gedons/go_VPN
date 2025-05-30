@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+*.ps1
 
 # Go specific
 *.test
@@ -36,6 +37,7 @@ config.yaml
 *.pem
 *.key
 *.crt
+*.gitignore
 
 # Dependencies
 vendor/
